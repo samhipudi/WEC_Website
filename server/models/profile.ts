@@ -3,7 +3,9 @@
  */
 export type Profile = {
   id: string;
-  name: string;
-  handle: string;
-  avatar_url: string;
+  updated_at: string | null;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  website: string | null;
 };

@@ -1,26 +1,35 @@
-/**
- * Home page template.
- */
-
-import { Home, Heart, Plus, MapPin, Search, Bot, Send, Bookmark } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import React from 'react';
-import { createSupabaseComponentClient } from '@/utils/supabase/clients/component';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { createSupabaseComponentClient } from '@/utils/supabase/clients/component';
 import { Profile } from '@/server/models/profile';
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
+import USMap from '@/components/USMap';
 
 export default function HomePage() {
   const router = useRouter();
   const supabase = createSupabaseComponentClient();
   const [profile, setProfile] = React.useState<Profile | null>(null);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
 
   React.useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
@@ -33,191 +42,126 @@ export default function HomePage() {
 
     fetchProfile();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        fetchProfile();
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          fetchProfile();
+        } else if (event === 'SIGNED_OUT') {
+          setProfile(null);
+        }
       }
-    });
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, [supabase, router]);
 
-  // fill later with actual database posts
-  const posts = [
-    { id: 1, title: "Trip Title", location: "City, Country", likes: 0 },
-    { id: 2, title: "Trip Title", location: "City, Country", likes: 0 },
-    { id: 3, title: "Trip Title", location: "City, Country", likes: 0 },
-    { id: 4, title: "Trip Title", location: "City, Country", likes: 0 },
-  ];
-
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* nav sidebar */}
-      <Sidebar />
-
-      {/* posts section */}
-      <section className="flex flex-1 flex-col border-r bg-opacity-40 bg-card">
-        <header className="flex items-center justify-between border-b px-6 py-4">
-          <div className="text-sm text-muted-foreground">Home</div>
+    <div className="min-h-screen bg-background text-foreground font-sans">
+      <header className="border-b border-border flex items-center justify-between px-12 py-6" style={{ backgroundColor: '#eee1c4' }}>
+        <div className="flex items-center gap-3">
+          <Image src="/images/Blank Logo.png?v=4" alt="WEC Logo" width={100} height={100} className="object-contain" />
+          <h1 className="text-2xl font-bold font-serif tracking-wide" style={{ color: '#2a2a2a' }}>Women Executives Circle</h1>
+        </div>
+        <nav className="flex items-center gap-8 text-2xl font-medium" style={{ color: '#2a2a2a' }}>
+          <DropdownMenu open={aboutOpen} onOpenChange={setAboutOpen}>
+            <DropdownMenuTrigger className="cursor-pointer flex items-center gap-1" style={{ color: '#2a2a2a' }} onMouseEnter={(e) => e.currentTarget.style.color = '#8b7355'} onMouseLeave={(e) => e.currentTarget.style.color = '#2a2a2a'}>
+              About Us
+              <ChevronDown className="h-5 w-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="start" 
+              className="min-w-[250px] p-2"
+              style={{ backgroundColor: '#eee1c4', border: '2px solid #c9a961' }}
+            >
+              <DropdownMenuItem 
+                onClick={() => router.push('/mission')}
+                className="text-xl py-3 px-4 cursor-pointer hover:bg-[#d9c9a8] focus:bg-[#d9c9a8]"
+                style={{ color: '#2a2a2a' }}
+              >
+                Mission
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => router.push('/leadership-circle')}
+                className="text-xl py-3 px-4 cursor-pointer hover:bg-[#d9c9a8] focus:bg-[#d9c9a8]"
+                style={{ color: '#2a2a2a' }}
+              >
+                Leadership Circle
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => router.push('/advisors-circle')}
+                className="text-xl py-3 px-4 cursor-pointer hover:bg-[#d9c9a8] focus:bg-[#d9c9a8]"
+                style={{ color: '#2a2a2a' }}
+              >
+                Advisors Circle
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <a href="/events" className="hover:text-primary">Events</a>
+        </nav>
+        <div>
           {profile ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">{profile.handle}</span>
+              <span className="text-sm font-medium">{profile.full_name}</span>
               <Avatar>
-                <AvatarImage src={profile.avatar_url} />
-                <AvatarFallback>{profile.handle.charAt(0)}</AvatarFallback>
+                {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                <AvatarFallback>{profile.full_name?.charAt(0)}</AvatarFallback>
               </Avatar>
+              <Button onClick={handleSignOut} variant="outline">
+                Sign Out
+              </Button>
             </div>
           ) : (
-            <Button onClick={() => router.push('/login')}>
-              Log In / Sign Up
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => router.push('/auth/login')} size="lg" className="px-12 py-7 text-xl" style={{ backgroundColor: 'transparent', color: '#2a2a2a', border: '2px solid #c9a961' }}>
+                Log In
+              </Button>
+              <Button onClick={() => router.push('/auth/signup')} size="lg" className="px-12 py-7 text-xl">
+                Apply
+              </Button>
+            </div>
           )}
-        </header>
-        
-        <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-8 pb-8 pt-4">
-          {/* search bar */}
-          <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              placeholder="Search for itineraries"
-              className="flex-1 bg-transparent text-sm outline-none"
-            />
-          </div>
-          
-          {/* posts grid */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Popular</h2>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-6">
-            {posts.map((post) => (
-              <PostCard
-                key={post.id}
-                title={post.title}
-                location={post.location}
-                likes={post.likes}
-              />
-            ))}
-          </div>
         </div>
-      </section>
-
-      <Chatbot />
-    </div>
-  );
-}
-
-// nav sidebar component
-function Sidebar() {
-  return (
-    <div className="flex h-full w-28 flex-col items-center border-r bg-opacity-80 bg-muted py-6">
-      <div className="flex flex-col items-center gap-3">
-        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          Explore
-        </div>
-        <NavBubble icon={Home} label="Home" active />
-        <NavBubble icon={Heart} label="Liked" />
-        <NavBubble icon={Plus} label="Create" />
-      </div>
-
-      {/*Not implementing this functionality yet */}
-      <div className="flex flex-col items-center gap-3 pt-6">
-        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          My Trips
-        </div>
-        <NavBubble icon={MapPin} label="Trip 1" />
-        <NavBubble icon={MapPin} label="Trip 2" />
-      </div>
-
-      <div className="flex-1" />
-    </div>
-  );
-}
-
-type NavBubbleProps = {
-  icon: React.ElementType;
-  label: string;
-  active?: boolean;
-};
-
-function NavBubble({ icon: Icon, label, active = false }: NavBubbleProps) {
-  return (
-    <button
-      type="button"
-      title={label}
-      className="flex flex-col items-center gap-1"
-    >
-      {/* nav button*/}
-      <div className={`flex h-10 w-10 items-center justify-center rounded-full border transition 
-        ${active ? "bg-primary text-primary-foreground border-transparent shadow-md" : "bg-background/80 text-muted-foreground border-border hover:bg-background"}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      
-      {/* label */}
-      <span className={`text-[11px] ${active ? "text-foreground" : "text-muted-foreground"}`}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
-// post card component
-type PostCardProps = {
-  title: string;
-  location: string;
-  likes: number;
-};
-
-function PostCard({ title, location, likes = 0 }: PostCardProps) {
-  return (
-    <Card className="bg-muted/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="relative h-28 rounded-md bg-muted/80">
-          <button className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-opacity-80 bg-background shadow-sm">
-            <Bookmark className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex items-end justify-between">
-        <div>
-          <CardTitle className="text-base">{title}</CardTitle>
-          <p className="text-xs text-muted-foreground">{location}</p>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Heart className="h-4 w-4" />
-          <span>{likes}</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ai chatbot component
-function Chatbot() {
-  return (
-    <div className="flex h-full w-80 flex-col bg-opacity-80 bg-muted">
-      <header className="flex items-center gap-2 border-b px-6 py-4">
-        <Bot className="h-5 w-5" />
-        <h2 className="text-lg font-semibold">Chat</h2>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <p className="text-sm text-muted-foreground">Messages will appear here</p>
-      </div>
+      <main>
+        <section
+          className="relative flex items-center justify-center h-[60vh] bg-cover bg-center"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+        >
+          <div className="absolute inset-0 bg-background opacity-50"></div>
+          <div className="relative z-10 text-center">
+            <h2 className="text-7xl font-bold font-serif leading-tight">WEC</h2>
+            <p className="mt-6 max-w-3xl text-3xl text-foreground/90">
+              To unite senior women executives in trusted circles rooted in Wisdom, Empowerment, and Connection.
+            </p>
+            <Button size="lg" className="mt-12 px-16 py-8 text-2xl font-bold">
+              Become a Member
+            </Button>
+          </div>
+        </section>
 
-      <footer className="border-t px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Input placeholder="Ask me anything!" className="flex-1" />
-          <Button size="icon" className="rounded-full">
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </footer>
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-12">
+            <h3 className="text-4xl font-bold font-serif text-center mb-12" style={{ color: '#f5f5f5' }}>
+              Our Chapters Across the Nation
+            </h3>
+            <USMap
+              pins={[
+                { city: 'New York', state: 'NY', coordinates: [-74.006, 40.7128] },
+                { city: 'Los Angeles', state: 'CA', coordinates: [-118.2437, 34.0522] },
+                { city: 'Chicago', state: 'IL', coordinates: [-87.6298, 41.8781] },
+                { city: 'Houston', state: 'TX', coordinates: [-95.3698, 29.7604] },
+                { city: 'Miami', state: 'FL', coordinates: [-80.1918, 25.7617] },
+                { city: 'Seattle', state: 'WA', coordinates: [-122.3321, 47.6062] },
+                { city: 'Boston', state: 'MA', coordinates: [-71.0589, 42.3601] },
+                { city: 'Atlanta', state: 'GA', coordinates: [-84.388, 33.749] },
+              ]}
+            />
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

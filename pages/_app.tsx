@@ -9,6 +9,9 @@
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "@/styles/globals.css";
+import { Playfair_Display } from 'next/font/google';
+
+const playfair = Playfair_Display({ subsets: ['latin'] });
 import type { AppProps } from "next/app";
 import { api } from "@/utils/trpc/api";
 
@@ -20,7 +23,9 @@ function App({ Component, pageProps }: AppProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <Component {...pageProps} />
+      <main className={playfair.className}>
+        <Component {...pageProps} />
+      </main>
     </ThemeProvider>
   );
 }
